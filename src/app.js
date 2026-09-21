@@ -135,39 +135,58 @@ function setNipButtonsBusy(busy){
  buttons.forEach(b=>{b.disabled=busy;if(b.disabled)b.dataset.oldText=b.textContent;b.textContent=busy?'Pobieranie…':'Pobierz dane';});
 }
 
-async function fetchViaCorsProxy(targetUrl){
- const proxyUrl='https://api.allorigins.win/get?url='+encodeURIComponent(targetUrl);
- const res=await fetch(proxyUrl,{method:'GET',cache:'no-store'});
- if(!res.ok)throw new Error('Serwis pośredniczący zwrócił HTTP '+res.status+'.');
- const wrapper=await res.json().catch(()=>null);
- if(!wrapper||typeof wrapper.contents!=='string')throw new Error('Nieprawidłowa odpowiedź serwisu pośredniczącego.');
- try{return JSON.parse(wrapper.contents);}catch(_){throw new Error('Rejestr zwrócił odpowiedź, której nie można odczytać.');}
+async function fetchJson(url){
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),12000);
+ try{
+   const res=await fetch(url,{method:'GET',headers:{Accept:'application/json'},cache:'no-store',signal:controller.signal});
+   const text=await res.text();
+   let data=null;
+   try{data=JSON.parse(text);}catch(_){}
+   if(!res.ok)throw new Error((data?.message||'Błąd HTTP '+res.status));
+   return data;
+ }catch(err){
+   if(err?.name==='AbortError')throw new Error('Przekroczono czas oczekiwania na rejestr.');
+   throw err;
+ }finally{
+   clearTimeout(timer);
+ }
 }
 
 async function fetchCompanyFromPublicRegistry(nip){
  const clean=cleanNip(nip);
 
- // Oficjalny Wykaz podatników VAT MF przez warstwę CORS.
- const mfUrl='https://wl-api.mf.gov.pl/api/search/nip/'+encodeURIComponent(clean)+'?date='+today();
- const mfData=await fetchViaCorsProxy(mfUrl);
- const subject=mfData?.result?.subject;
- if(subject){
-   return {
-     nip:subject.nip||clean,
-     name:subject.name||'',
-     address:subject.workingAddress||subject.residenceAddress||'',
-     regon:subject.regon||'',
-     source:'Wykaz VAT MF'
-   };
+ // 1. Oficjalny Wykaz podatników VAT Ministerstwa Finansów.
+ try{
+   const mfUrl='https://wl-api.mf.gov.pl/api/search/nip/'+encodeURIComponent(clean)+'?date='+today();
+   const mfData=await fetchJson(mfUrl);
+   const subject=mfData?.result?.subject;
+   if(subject){
+     return {
+       nip:subject.nip||clean,
+       name:subject.name||'',
+       address:subject.workingAddress||subject.residenceAddress||'',
+       regon:subject.regon||'',
+       source:'Wykaz VAT MF'
+     };
+   }
+ }catch(err){
+   console.warn('MF NIP lookup:',err);
  }
 
- // Dodatkowo próbujemy publicznej warstwy REGON.
- const regonUrl='https://skanfirmy.pl/regon/'+encodeURIComponent(clean)+'?format=json';
+ // 2. Rejestr REGON/GUS przez publiczny endpoint JSON.
  try{
-   const regonData=await fetchViaCorsProxy(regonUrl);
+   const regonUrl='https://skanfirmy.pl/regon/'+encodeURIComponent(clean)+'?format=json';
+   const regonData=await fetchJson(regonUrl);
    const d=regonData?.dane;
    if(d){
-     const addressParts=[d.ulica||'',d.nrNieruchomosci||'',d.nrLokalu?'/'+d.nrLokalu:'',d.kodPocztowy||'',d.miejscowosc||''].filter(Boolean);
+     const addressParts=[
+       d.ulica||'',
+       d.nrNieruchomosci||'',
+       d.nrLokalu?'/'+d.nrLokalu:'',
+       d.kodPocztowy||'',
+       d.miejscowosc||''
+     ].filter(Boolean);
      return {
        nip:regonData?.nip||clean,
        name:d.nazwa||'',
@@ -176,7 +195,27 @@ async function fetchCompanyFromPublicRegistry(nip){
        source:'REGON/GUS'
      };
    }
- }catch(_){}
+ }catch(err){
+   console.warn('REGON NIP lookup:',err);
+ }
+
+ // 3. Publiczny endpoint KRS po NIP — dla spółek.
+ try{
+   const krsUrl='https://skanfirmy.pl/nip/'+encodeURIComponent(clean)+'?format=json';
+   const krsData=await fetchJson(krsUrl);
+   const k=krsData?.krs;
+   if(k){
+     return {
+       nip:k.nip||clean,
+       name:k.nazwa||'',
+       address:k.adres||'',
+       regon:k.regon||'',
+       source:'KRS'
+     };
+   }
+ }catch(err){
+   console.warn('KRS NIP lookup:',err);
+ }
 
  return null;
 }
