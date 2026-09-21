@@ -17,6 +17,7 @@
       <input id="password" type="password" placeholder="Hasło">
       <button id="loginBtn" class="primary">Zaloguj</button>
       <button id="signupBtn" class="secondary">Utwórz konto</button>
+      <button id="loginQrBtn" class="secondary">📱 Pokaż kod QR telefonu</button>
       <div id="authMsg"></div>
     </div>
   </section>
@@ -29,6 +30,7 @@
       </div>
       <div class="header-actions">
         <span id="userEmail"></span>
+        <button id="qrBtn" class="secondary">📱 Kod QR</button>
         <button id="logoutBtn" class="secondary">Wyloguj</button>
       </div>
     </header>
@@ -103,6 +105,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="src/app.js"></script>
 </body>
 </html>
