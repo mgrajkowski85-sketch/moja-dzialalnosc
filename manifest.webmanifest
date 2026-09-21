@@ -1,0 +1,20 @@
+{
+  "name": "Moja Działalność",
+  "short_name": "Moja Działalność",
+  "lang": "pl-PL",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f4f6f8",
+  "theme_color": "#1f6feb",
+  "description": "Ewidencja działalności nierejestrowanej, dokumenty, klienci, limity i PIT-36.",
+  "icons": [
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
