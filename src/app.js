@@ -77,9 +77,6 @@ async function loadData(){
  ]);
  if(cErr||dErr){alert((cErr||dErr).message);return;}
  state.clients=clients||[];state.documents=docs||[];
- await syncClientsFromDocuments();
- const {data:freshClients,error:fErr}=await sb.from('clients').select('*').order('created_at',{ascending:false});
- if(!fErr) state.clients=freshClients||state.clients;
  render();
 }
 
@@ -155,11 +152,15 @@ $('clientForm').onsubmit=async e=>{
 
 async function deleteClient(id){
  const c=state.clients.find(x=>x.id===id);if(!c)return;
- const used=state.documents.some(d=>d.client_id===id||d.client_name===c.name);
- const msg=used?`Klient "${c.name}" ma dokumenty. Usunąć tylko z listy klientów? Dokumenty zostaną.`:`Usunąć klienta "${c.name}"?`;
+ const used=state.documents.some(d=>d.client_id===id);
+ const msg=used ? 'Klient "'+c.name+'" ma przypisane dokumenty. Klient zostanie usunięty z listy, a dokumenty pozostaną w historii.' : 'Usunąć klienta "'+c.name+'"?';
  if(!confirm(msg))return;
+ if(used){
+  const {error:docError}=await sb.from('documents').update({client_id:null}).eq('client_id',id);
+  if(docError){alert('Nie udało się odłączyć klienta od dokumentów: '+docError.message);return;}
+ }
  const {error}=await sb.from('clients').delete().eq('id',id);
- if(error){alert(error.message);return;}
+ if(error){alert('Nie udało się usunąć klienta: '+error.message);return;}
  await loadData();
 }
 
@@ -173,7 +174,7 @@ function showClientDetails(id){
  modal.innerHTML=`<div class="client-modal-card">
   <div class="client-modal-head">
    <div><h3>${escapeHtml(c.name)}</h3><small>Dane klienta</small></div>
-   <button class="secondary" onclick="closeClientDetails()">Zamknij</button>
+   <div class="client-modal-actions"><button class="secondary" onclick="editClient('${c.id}')">Edytuj</button><button class="secondary" onclick="closeClientDetails()">Zamknij</button></div>
   </div>
   <div class="client-info">
    <div><span>NIP</span><b>${escapeHtml(c.nip||'Brak danych w bazie')}</b></div>
@@ -265,7 +266,7 @@ function render(){
  $('number').value=nextNumber();fillClientSelect();
  const docs=[...state.documents].sort((a,b)=>(b.sale_date||'').localeCompare(a.sale_date||'')||(b.created_at||'').localeCompare(a.created_at||''));
  $('documentsList').innerHTML=docs.length?docs.map(d=>`<div class="row"><div><b>${escapeHtml(d.number)}</b><br>${escapeHtml(d.sale_date)}<br>${escapeHtml(d.client_name)}<br>${escapeHtml(d.item_name)}</div><div><b>${money(d.total)}</b><div class="row-actions"><button onclick="printDocument('${d.id}')">Drukuj / PDF</button><button class="danger" onclick="deleteDocument('${d.id}')">Usuń</button></div></div></div>`).join(''):'<div class="empty">Brak dokumentów.</div>';
- $('clientsList').innerHTML=state.clients.length?state.clients.map(c=>`<div class="row client-row" onclick="showClientDetails('${c.id}')"><div><b class="client-name">${escapeHtml(c.name)}</b><div class="client-hint">Kliknij, aby zobaczyć dane klienta</div></div><button class="danger" onclick="event.stopPropagation();deleteClient('${c.id}')">Usuń klienta</button></div>`).join(''):'<div class="empty">Brak klientów.</div>';
+ $('clientsList').innerHTML=state.clients.length?state.clients.map(c=>`<div class="row client-row" onclick="showClientDetails('${c.id}')"><div><b class="client-name">${escapeHtml(c.name)}</b><div class="client-hint">Kliknij, aby zobaczyć dane klienta</div></div><div class="row-actions"><button class="secondary" onclick="event.stopPropagation();editClient('${c.id}')">Edytuj</button><button class="danger" onclick="event.stopPropagation();deleteClient('${c.id}')">Usuń</button></div></div>`).join(''):'<div class="empty">Brak klientów.</div>';
 }
 
 $('issueDate').value=today();$('saleDate').value=today();
