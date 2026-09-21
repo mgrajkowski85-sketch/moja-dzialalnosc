@@ -137,50 +137,31 @@ function setNipButtonsBusy(busy){
 
 async function fetchText(url){
  const controller=new AbortController();
- const timer=setTimeout(()=>controller.abort(),15000);
+ const timer=setTimeout(()=>controller.abort(),6000);
  try{
    const res=await fetch(url,{method:'GET',cache:'no-store',signal:controller.signal});
-   const text=await res.text();
+   const raw=await res.text();
    if(!res.ok)throw new Error('HTTP '+res.status);
-   return text;
+   return raw;
  }finally{clearTimeout(timer);}
 }
 
 async function fetchJsonAny(targetUrl){
  const attempts=[
-   {
-     name:'CORS Proxy',
-     url:'https://corsproxy.io/?url='+encodeURIComponent(targetUrl)
-   },
-   {
-     name:'AllOrigins',
-     url:'https://api.allorigins.win/raw?url='+encodeURIComponent(targetUrl)
-   },
-   {
-     name:'CodeTabs',
-     url:'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(targetUrl)
-   },
-   {
-     name:'ThingProxy',
-     url:'https://thingproxy.freeboard.io/fetch/'+targetUrl
-   },
-   {
-     name:'Bezpośrednio',
-     url:targetUrl
-   }
+   'https://corsproxy.io/?url='+encodeURIComponent(targetUrl),
+   'https://api.allorigins.win/raw?url='+encodeURIComponent(targetUrl),
+   'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(targetUrl),
+   targetUrl
  ];
- let lastError=null;
- for(const a of attempts){
-   try{
-     const raw=await fetchText(a.url);
-     const data=JSON.parse(raw);
-     return {data,source:a.name};
-   }catch(err){
-     lastError=err;
-     console.warn('NIP lookup '+a.name,err);
-   }
+ const jobs=attempts.map(async url=>{
+   const raw=await fetchText(url);
+   return JSON.parse(raw);
+ });
+ try{
+   return {data:await Promise.any(jobs)};
+ }catch(_){
+   throw new Error('Serwisy wyszukiwania NIP nie odpowiedziały.');
  }
- throw new Error('Nie udało się połączyć z rejestrem NIP. '+(lastError?.message||'Sprawdź internet.'));
 }
 
 async function fetchCompanyFromPublicRegistry(nip){
@@ -196,12 +177,10 @@ async function fetchCompanyFromPublicRegistry(nip){
        name:subject.name||'',
        address:subject.workingAddress||subject.residenceAddress||'',
        regon:subject.regon||'',
-       source:result.source
+       source:'Wykaz VAT MF'
      };
    }
- }catch(err){
-   console.warn('MF lookup failed',err);
- }
+ }catch(err){console.warn('MF lookup failed',err);}
 
  try{
    const regonUrl='https://skanfirmy.pl/nip/'+encodeURIComponent(clean)+'?format=json';
@@ -215,12 +194,10 @@ async function fetchCompanyFromPublicRegistry(nip){
        name:d.nazwa||'',
        address:addressParts.join(' ').trim(),
        regon:d.regon||data?.regon||'',
-       source:result.source
+       source:'REGON/GUS'
      };
    }
- }catch(err){
-   console.warn('REGON lookup failed',err);
- }
+ }catch(err){console.warn('REGON lookup failed',err);}
 
  return null;
 }
