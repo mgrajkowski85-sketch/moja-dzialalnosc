@@ -42,6 +42,7 @@
       <button data-view="documents">Dokumenty</button>
       <button data-view="clients">Klienci</button>
       <button data-view="limits">Limity</button>
+      <button data-view="pit">PIT-36</button>
     </nav>
 
     <main>
@@ -108,6 +109,31 @@
         <div id="clientsList"></div>
       </section>
 
+
+      <section id="pit" class="view">
+        <h2>PIT-36</h2>
+        <p class="limit-note">Generator zestawienia do rocznego PIT-36. Przychód z działalności nierejestrowanej jest wykazywany w PIT-36 w części E, w wierszu „działalność nierejestrowana, określona w art. 20 ust. 1ba ustawy”.</p>
+
+        <div class="pit-box">
+          <h3>Dane do rozliczenia</h3>
+          <div class="grid">
+            <label>Rok podatkowy<select id="pitYear"><option value="2026">2026</option><option value="2025">2025</option></select></label>
+            <label>Przychód do PIT-36<input id="pitRevenue" type="number" min="0" step="0.01"></label>
+            <label>Koszty uzyskania przychodu<input id="pitCosts" type="number" min="0" step="0.01" value="0"></label>
+            <label>Inne dochody opodatkowane skalą<input id="pitOtherIncome" type="number" min="0" step="0.01" value="0"></label>
+            <label>Odliczenia od dochodu<input id="pitDeductions" type="number" min="0" step="0.01" value="0"></label>
+            <label>Zaliczki na podatek<input id="pitAdvances" type="number" min="0" step="0.01" value="0"></label>
+          </div>
+          <label class="pit-check"><input id="pitJoint" type="checkbox"> Rozliczenie wspólnie z małżonkiem</label>
+          <div class="pit-summary" id="pitSummary"></div>
+          <div class="pit-actions">
+            <button class="primary" type="button" id="pitRefresh">Przelicz</button>
+            <button class="secondary" type="button" id="pitGenerate">🖨️ Generuj zestawienie PIT-36</button>
+            <a class="secondary pit-link" href="https://www.podatki.gov.pl/podatki-osobiste/pit/formularze/" target="_blank" rel="noopener">Oficjalny formularz PIT-36</a>
+          </div>
+          <p class="limit-note">Ważne: przychód dla PIT liczony jest kasowo — liczą się kwoty faktycznie otrzymane lub postawione do dyspozycji. Suma dokumentów jest tylko propozycją do uzupełnienia i trzeba ją sprawdzić z faktycznymi płatnościami.</p>
+        </div>
+      </section>
       <section id="limits" class="view">
         <h2>Limity i budżet</h2>
         <p class="limit-note">Każdy kwartał ma osobny limit. Trzy miesiące są pokazane razem, a pozostała kwota jest liczona raz na cały kwartał.</p>
