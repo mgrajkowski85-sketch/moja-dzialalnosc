@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1f6feb">
+<title>Moja Działalność — Chmura</title>
+<link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+<div id="app">
+  <section id="authView" class="auth">
+    <div class="auth-card">
+      <h1>Moja Działalność</h1>
+      <p>Logowanie do wersji chmurowej</p>
+      <input id="email" type="email" placeholder="E-mail">
+      <input id="password" type="password" placeholder="Hasło">
+      <button id="loginBtn" class="primary">Zaloguj</button>
+      <button id="signupBtn" class="secondary">Utwórz konto</button>
+      <div id="authMsg"></div>
+    </div>
+  </section>
+
+  <section id="mainView" hidden>
+    <header>
+      <div>
+        <h1>Moja Działalność</h1>
+        <small id="cloudStatus">Połączono z chmurą</small>
+      </div>
+      <div class="header-actions">
+        <span id="userEmail"></span>
+        <button id="logoutBtn" class="secondary">Wyloguj</button>
+      </div>
+    </header>
+
+    <nav>
+      <button data-view="dashboard">Pulpit</button>
+      <button data-view="invoice">Wystaw dokument</button>
+      <button data-view="documents">Dokumenty</button>
+      <button data-view="clients">Klienci</button>
+    </nav>
+
+    <main>
+      <section id="dashboard" class="view active">
+        <h2>Pulpit</h2>
+        <div class="cards">
+          <div><b id="monthIncome">0,00 zł</b><small>Przychód w tym miesiącu</small></div>
+          <div><b id="yearIncome">0,00 zł</b><small>Przychód w tym roku</small></div>
+          <div><b id="docCount">0</b><small>Dokumentów</small></div>
+          <div><b id="clientCount">0</b><small>Klientów</small></div>
+        </div>
+      </section>
+
+      <section id="invoice" class="view">
+        <h2>Wystaw dokument sprzedaży</h2>
+        <form id="invoiceForm">
+          <div class="grid">
+            <label>Numer dokumentu<input id="number" required></label>
+            <label>Data wystawienia<input id="issueDate" type="date" required></label>
+            <label>Data sprzedaży<input id="saleDate" type="date" required></label>
+            <label>Forma płatności<select id="payment"><option>Przelew bankowy</option><option>Gotówka</option><option>Karta</option></select></label>
+          </div>
+          <h3>Sprzedawca</h3>
+          <div class="grid">
+            <label>Nazwa / imię i nazwisko<input id="sellerName"></label>
+            <label>NIP (jeśli dotyczy)<input id="sellerNip"></label>
+            <label>Adres<input id="sellerAddress"></label>
+          </div>
+          <h3>Nabywca</h3>
+          <div class="grid">
+            <label>Wybierz klienta<select id="clientSelect"><option value="">— wpisz ręcznie —</option></select></label>
+            <label>Nazwa / imię i nazwisko<input id="clientName" required></label>
+            <label>NIP<input id="clientNip"></label>
+            <label>Adres<input id="clientAddress"></label>
+          </div>
+          <h3>Pozycja</h3>
+          <div class="grid">
+            <label>Opis usługi / towaru<input id="itemName" required></label>
+            <label>Ilość<input id="qty" type="number" min="0.01" step="0.01" value="1"></label>
+            <label>Cena jednostkowa<input id="price" type="number" min="0" step="0.01" required></label>
+          </div>
+          <button class="primary" type="submit">Zapisz dokument w chmurze</button>
+        </form>
+      </section>
+
+      <section id="documents" class="view">
+        <h2>Dokumenty</h2>
+        <div id="documentsList"></div>
+      </section>
+
+      <section id="clients" class="view">
+        <h2>Klienci</h2>
+        <form id="clientForm" class="grid">
+          <label>Nazwa / imię i nazwisko<input id="newClientName" required></label>
+          <label>NIP<input id="newClientNip"></label>
+          <label>Adres<input id="newClientAddress"></label>
+          <button class="primary" type="submit">Dodaj klienta</button>
+        </form>
+        <div id="clientsList"></div>
+      </section>
+    </main>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
