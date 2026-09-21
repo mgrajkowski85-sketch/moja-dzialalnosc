@@ -75,7 +75,9 @@
           <div class="grid">
             <label>Wybierz klienta<select id="clientSelect"><option value="">— wpisz ręcznie —</option></select></label>
             <label>Nazwa / imię i nazwisko<input id="clientName" required></label>
-            <label>NIP<input id="clientNip"></label>
+            <label>NIP
+              <div class="nip-row"><input id="clientNip"><button type="button" class="secondary nip-btn" id="lookupInvoiceNip">Pobierz dane</button></div>
+            </label>
             <label>Adres<input id="clientAddress"></label>
           </div>
           <h3>Pozycja</h3>
@@ -97,7 +99,9 @@
         <h2>Klienci</h2>
         <form id="clientForm" class="grid">
           <label>Nazwa / imię i nazwisko<input id="newClientName" required></label>
-          <label>NIP<input id="newClientNip"></label>
+          <label>NIP
+            <div class="nip-row"><input id="newClientNip"><button type="button" class="secondary nip-btn" id="lookupClientNip">Pobierz dane</button></div>
+          </label>
           <label>Adres<input id="newClientAddress"></label>
           <button class="primary" type="submit">Dodaj klienta</button>
         </form>
