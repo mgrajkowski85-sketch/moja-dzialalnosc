@@ -183,3 +183,8 @@ nav button:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.08
   .qr-card{padding:20px 14px}
   nav button{box-shadow:0 2px 7px rgba(0,0,0,.04)}
 }
+
+
+.nip-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch}.nip-btn{white-space:nowrap;padding:10px 12px}.nip-row input{min-width:0}
+@media(max-width:600px){.nip-row{grid-template-columns:1fr auto}.nip-btn{font-size:13px;padding:9px 10px}}
+.client-modal-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
