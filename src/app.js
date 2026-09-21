@@ -220,7 +220,22 @@ function render(){
  const now=new Date(),ym=now.toISOString().slice(0,7),yy=String(now.getFullYear());
  const mi=state.documents.filter(d=>String(d.sale_date||'').startsWith(ym)).reduce((s,d)=>s+Number(d.total||0),0);
  const yi=state.documents.filter(d=>String(d.sale_date||'').startsWith(yy)).reduce((s,d)=>s+Number(d.total||0),0);
- $('monthIncome').textContent=money(mi);$('yearIncome').textContent=money(yi);$('docCount').textContent=state.documents.length;$('clientCount').textContent=state.clients.length;
+ const year=now.getFullYear();
+ const quarter=Math.floor(now.getMonth()/3);
+ const qStart=new Date(year,quarter*3,1);
+ const qEnd=new Date(year,quarter*3+3,1);
+ const qIncome=state.documents.filter(d=>{
+   const dt=new Date(String(d.sale_date||'')+'T00:00:00');
+   return dt>=qStart && dt<qEnd;
+ }).reduce((s,d)=>s+Number(d.total||0),0);
+ const quarterlyLimit=10813.50;
+ const quarterLeft=Math.max(0,quarterlyLimit-qIncome);
+ const annualTheoreticalLimit=quarterlyLimit*4;
+ const yearLeft=Math.max(0,annualTheoreticalLimit-yi);
+ $('monthIncome').textContent=money(mi);$('yearIncome').textContent=money(yi);
+ $('quarterRemaining').textContent=money(quarterLeft);
+ $('yearRemaining').textContent=money(yearLeft);
+ $('docCount').textContent=state.documents.length;$('clientCount').textContent=state.clients.length;
  $('number').value=nextNumber();fillClientSelect();
  const docs=[...state.documents].sort((a,b)=>(b.sale_date||'').localeCompare(a.sale_date||'')||(b.created_at||'').localeCompare(a.created_at||''));
  $('documentsList').innerHTML=docs.length?docs.map(d=>`<div class="row"><div><b>${escapeHtml(d.number)}</b><br>${escapeHtml(d.sale_date)}<br>${escapeHtml(d.client_name)}<br>${escapeHtml(d.item_name)}</div><div><b>${money(d.total)}</b><div class="row-actions"><button onclick="printDocument('${d.id}')">Drukuj / PDF</button><button class="danger" onclick="deleteDocument('${d.id}')">Usuń</button></div></div></div>`).join(''):'<div class="empty">Brak dokumentów.</div>';
