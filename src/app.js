@@ -225,6 +225,38 @@ async function fetchCompanyFromPublicRegistry(nip){
  return null;
 }
 
+async function lookupNip(nip,target){
+ const clean=cleanNip(nip);
+ if(!validNip(clean)){alert('Podaj prawidłowy 10-cyfrowy NIP.');return null;}
+ const btn=target==='client'?$('lookupClientNip'):$('lookupInvoiceNip');
+ const oldText=btn?.textContent;
+ if(btn){btn.disabled=true;btn.textContent='Pobieranie…';}
+ try{
+   const data=await fetchCompanyFromPublicRegistry(clean);
+   if(!data){
+     alert('Nie znaleziono firmy o tym NIP w dostępnych rejestrach.');
+     return null;
+   }
+   const name=data.name||'';
+   const address=data.address||'';
+   if(target==='client'){
+     $('newClientNip').value=data.nip||clean;
+     if(name)$('newClientName').value=name;
+     if(address)$('newClientAddress').value=address;
+   }else{
+     $('clientNip').value=data.nip||clean;
+     if(name)$('clientName').value=name;
+     if(address)$('clientAddress').value=address;
+   }
+   return data;
+ }catch(err){
+   alert('Nie udało się pobrać danych NIP. '+(err?.message||'Sprawdź połączenie z internetem.'));
+   return null;
+ }finally{
+   if(btn){btn.disabled=false;btn.textContent=oldText||'Pobierz dane';}
+ }
+}
+
 function fillClientSelect(){
  $('clientSelect').innerHTML='<option value="">— wpisz ręcznie —</option>'+state.clients.map(c=>`<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
 }
