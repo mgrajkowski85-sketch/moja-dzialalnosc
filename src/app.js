@@ -559,3 +559,10 @@ sb.auth.onAuthStateChange(async(_event,session)=>{
  if(state.user){showMain();await loadData();$('number').value=nextNumber();}
  else showAuth();
 });
+
+
+if('serviceWorker' in navigator){
+ window.addEventListener('load',()=>{
+   navigator.serviceWorker.register('./sw.js').catch(err=>console.warn('PWA:',err));
+ });
+}
