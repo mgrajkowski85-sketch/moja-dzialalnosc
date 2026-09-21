@@ -117,9 +117,44 @@ async function syncClientsFromDocuments(){
  }
 }
 
+function cleanNip(value){
+ return String(value||'').replace(/[^0-9]/g,'');
+}
+
+async function lookupNip(nip, target){
+ const clean=cleanNip(nip);
+ if(clean.length!==10){alert('NIP musi mieć 10 cyfr.');return null;}
+ const date=today();
+ try{
+   const res=await fetch('https://wl-api.mf.gov.pl/api/search/nip/'+encodeURIComponent(clean)+'?date='+date,{cache:'no-store'});
+   const data=await res.json().catch(()=>null);
+   if(!res.ok){throw new Error(data?.message||'Nie udało się pobrać danych z Wykazu podatników VAT.');}
+   const s=data?.result?.subject;
+   if(!s){alert('Nie znaleziono danych dla tego NIP w Wykazie podatników VAT.');return null;}
+   const name=s.name||'';
+   const address=s.workingAddress||s.residenceAddress||'';
+   if(target==='client'){
+     $('newClientNip').value=s.nip||clean;
+     if(name)$('newClientName').value=name;
+     if(address)$('newClientAddress').value=address;
+   }else{
+     $('clientNip').value=s.nip||clean;
+     if(name)$('clientName').value=name;
+     if(address)$('clientAddress').value=address;
+   }
+   return s;
+ }catch(err){
+   alert('Nie udało się pobrać danych NIP. '+(err?.message||'Sprawdź połączenie z internetem.'));
+   return null;
+ }
+}
+
 function fillClientSelect(){
  $('clientSelect').innerHTML='<option value="">— wpisz ręcznie —</option>'+state.clients.map(c=>`<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
 }
+$('lookupClientNip').onclick=()=>lookupNip($('newClientNip').value,'client');
+$('lookupInvoiceNip').onclick=()=>lookupNip($('clientNip').value,'invoice');
+
 $('clientSelect').onchange=()=>{
  const c=state.clients.find(x=>x.id===$('clientSelect').value);
  if(!c)return;
