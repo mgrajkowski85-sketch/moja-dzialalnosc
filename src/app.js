@@ -51,7 +51,34 @@ async function loadData(){
  ]);
  if(cErr||dErr){alert((cErr||dErr).message);return;}
  state.clients=clients||[];state.documents=docs||[];
+ await syncClientsFromDocuments();
+ const {data:freshClients,error:fErr}=await sb.from('clients').select('*').order('created_at',{ascending:false});
+ if(!fErr) state.clients=freshClients||state.clients;
  render();
+}
+
+async function syncClientsFromDocuments(){
+ if(!state.user||!state.documents.length)return;
+ const byName=new Map();
+ for(const d of state.documents){
+   const name=String(d.client_name||'').trim();
+   if(!name)continue;
+   const cur=byName.get(name)||{name,nip:'',address:''};
+   if(!cur.nip && d.client_nip)cur.nip=String(d.client_nip).trim();
+   if(!cur.address && d.client_address)cur.address=String(d.client_address).trim();
+   byName.set(name,cur);
+ }
+ for(const c of byName.values()){
+   const existing=state.clients.find(x=>String(x.name||'').trim().toLowerCase()===c.name.toLowerCase());
+   if(existing){
+     const changes={};
+     if(!existing.nip && c.nip)changes.nip=c.nip;
+     if(!existing.address && c.address)changes.address=c.address;
+     if(Object.keys(changes).length) await sb.from('clients').update(changes).eq('id',existing.id);
+   }else{
+     await sb.from('clients').insert({user_id:state.user.id,name:c.name,nip:c.nip||null,address:c.address||null});
+   }
+ }
 }
 
 function fillClientSelect(){
@@ -100,23 +127,22 @@ async function deleteClient(id){
 function showClientDetails(id){
  const c=state.clients.find(x=>x.id===id);
  if(!c)return;
- const docs=state.documents.filter(d=>d.client_id===id||d.client_name===c.name);
+ const docs=state.documents.filter(d=>d.client_id===id||String(d.client_name||'').trim().toLowerCase()===String(c.name||'').trim().toLowerCase());
+ const recent=docs.slice(0,5).map(d=>`<div class="client-doc"><b>${escapeHtml(d.sale_date||'')}</b><span>${escapeHtml(d.item_name||'')}</span><strong>${money(d.total)}</strong></div>`).join('');
  let modal=$('clientModal');
- if(!modal){
-  modal=document.createElement('div');
-  modal.id='clientModal';
-  document.body.appendChild(modal);
- }
+ if(!modal){modal=document.createElement('div');modal.id='clientModal';document.body.appendChild(modal);}
  modal.innerHTML=`<div class="client-modal-card">
   <div class="client-modal-head">
    <div><h3>${escapeHtml(c.name)}</h3><small>Dane klienta</small></div>
    <button class="secondary" onclick="closeClientDetails()">Zamknij</button>
   </div>
   <div class="client-info">
-   <div><span>NIP</span><b>${escapeHtml(c.nip||'Brak')}</b></div>
-   <div><span>Adres</span><b>${escapeHtml(c.address||'Brak')}</b></div>
-   <div><span>Dokumenty</span><b>${docs.length}</b></div>
+   <div><span>NIP</span><b>${escapeHtml(c.nip||'Brak danych w bazie')}</b></div>
+   <div><span>Adres</span><b>${escapeHtml(c.address||'Brak danych w bazie')}</b></div>
+   <div><span>Liczba dokumentów</span><b>${docs.length}</b></div>
   </div>
+  <h4 class="client-section-title">Ostatnie dokumenty</h4>
+  <div class="client-docs">${recent||'<div class="empty">Brak dokumentów.</div>'}</div>
  </div>`;
  modal.classList.add('open');
  modal.onclick=e=>{if(e.target===modal)closeClientDetails();};
