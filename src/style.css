@@ -82,3 +82,16 @@ input,select{padding:11px;border:1px solid #ccd2d8;border-radius:7px;font-size:1
 .monthly-table .current-month{background:#f3f7ff}
 .current-tag{font-size:11px;padding:3px 6px;border-radius:999px;border:1px solid #ccd2d8;margin-left:6px;font-weight:normal}
 .limit-note{color:#667085;font-size:13px}
+
+.quarter-card{border:1px solid #d9dde3;border-radius:12px;margin:14px 0;padding:18px}
+.quarter-card.current-quarter{background:#f7faff}
+.quarter-header{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:14px}
+.quarter-header h3{margin:0;font-size:20px}
+.quarter-summary{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.quarter-summary div{min-width:140px;padding:10px 12px;background:#fff;border:1px solid #e5e7eb;border-radius:8px}
+.quarter-summary span{display:block;color:#667085;font-size:12px;margin-bottom:4px}
+.quarter-summary b{font-size:16px}
+.quarter-table{width:100%;border-collapse:collapse}
+.quarter-table th,.quarter-table td{padding:9px 10px;border-bottom:1px solid #e5e7eb;text-align:right}
+.quarter-table th:first-child,.quarter-table td:first-child{text-align:left}
+@media(max-width:700px){.quarter-header{flex-direction:column}.quarter-summary{justify-content:flex-start}.quarter-summary div{min-width:0;flex:1}}
