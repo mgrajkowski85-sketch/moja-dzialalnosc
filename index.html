@@ -115,6 +115,22 @@
         <p class="limit-note">Generator zestawienia do rocznego PIT-36. Przychód z działalności nierejestrowanej jest wykazywany w PIT-36 w części E, w wierszu „działalność nierejestrowana, określona w art. 20 ust. 1ba ustawy”.</p>
 
         <div class="pit-box">
+          <h3>Dane podatnika</h3>
+          <p class="limit-note">Wpisz je raz — aplikacja zapamięta je na tym urządzeniu i wykorzysta przy przygotowaniu zestawienia.</p>
+          <div class="grid">
+            <label>Imię<input id="pitFirstName"></label>
+            <label>Nazwisko<input id="pitLastName"></label>
+            <label>PESEL<input id="pitPesel" inputmode="numeric" maxlength="11"></label>
+            <label>NIP (jeśli używasz)<input id="pitNip"></label>
+            <label>Data urodzenia<input id="pitBirthDate" type="date"></label>
+            <label>Adres zamieszkania<input id="pitAddress"></label>
+            <label>Kod pocztowy<input id="pitPostal"></label>
+            <label>Miejscowość<input id="pitCity"></label>
+            <label>Urząd skarbowy<input id="pitTaxOffice"></label>
+          </div>
+        </div>
+
+        <div class="pit-box">
           <h3>Dane do rozliczenia</h3>
           <div class="grid">
             <label>Rok podatkowy<select id="pitYear"><option value="2026">2026</option><option value="2025">2025</option></select></label>
