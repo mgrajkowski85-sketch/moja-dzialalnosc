@@ -121,31 +121,101 @@ function cleanNip(value){
  return String(value||'').replace(/[^0-9]/g,'');
 }
 
-async function lookupNip(nip, target){
+function validNip(nip){
+ const d=cleanNip(nip);
+ if(d.length!==10)return false;
+ const w=[6,5,7,2,3,4,5,6,7];
+ const sum=w.reduce((s,x,i)=>s+(Number(d[i])*x),0);
+ const check=sum%11;
+ return check<10 && check===Number(d[9]);
+}
+
+function setNipButtonsBusy(busy){
+ const buttons=[$('lookupClientNip'),$('lookupInvoiceNip')].filter(Boolean);
+ buttons.forEach(b=>{b.disabled=busy;if(b.disabled)b.dataset.oldText=b.textContent;b.textContent=busy?'Pobieranie…':'Pobierz dane';});
+}
+
+async function fetchCompanyFromPublicRegistry(nip){
  const clean=cleanNip(nip);
- if(clean.length!==10){alert('NIP musi mieć 10 cyfr.');return null;}
- const date=today();
+
+ // Najpierw publiczna warstwa danych REGON/GUS — działa także dla podmiotów,
+ // których nie ma w Wykazie VAT MF.
+ const regonUrl='https://skanfirmy.pl/regon/'+encodeURIComponent(clean)+'?format=json';
+ const regonRes=await fetch(regonUrl,{method:'GET',headers:{Accept:'application/json'},cache:'no-store'});
+ if(regonRes.ok){
+   const regonData=await regonRes.json();
+   const d=regonData?.dane;
+   if(d){
+     const addressParts=[
+       d.ulica||'',
+       d.nrNieruchomosci||'',
+       d.nrLokalu?'/'+d.nrLokalu:'',
+       d.kodPocztowy||'',
+       d.miejscowosc||''
+     ].filter(Boolean);
+     return {
+       nip:clean,
+       name:d.nazwa||'',
+       address:addressParts.join(' ').replace(/\s+,/g,','),
+       regon:d.regon||'',
+       source:'GUS/REGON'
+     };
+   }
+ }
+ if(regonRes.status!==404) {
+   const body=await regonRes.text().catch(()=> '');
+   throw new Error('Błąd serwisu REGON ('+regonRes.status+'). '+body.slice(0,160));
+ }
+
+ // Fallback do oficjalnego Wykazu podatników VAT MF.
+ const mfUrl='https://wl-api.mf.gov.pl/api/search/nip/'+encodeURIComponent(clean)+'?date='+today();
+ const mfRes=await fetch(mfUrl,{method:'GET',headers:{Accept:'application/json'},cache:'no-store'});
+ const mfData=await mfRes.json().catch(()=>null);
+ if(mfRes.ok){
+   const subject=mfData?.result?.subject;
+   if(subject){
+     return {
+       nip:subject.nip||clean,
+       name:subject.name||'',
+       address:subject.workingAddress||subject.residenceAddress||'',
+       regon:subject.regon||'',
+       source:'Wykaz VAT MF'
+     };
+   }
+ }
+ if(mfRes.status===404 || !mfData?.result?.subject) return null;
+ throw new Error(mfData?.message||'Błąd Wykazu podatników VAT ('+mfRes.status+').');
+}
+
+async function lookupNip(nip,target){
+ const clean=cleanNip(nip);
+ if(!validNip(clean)){alert('Podaj prawidłowy 10-cyfrowy NIP.');return null;}
+ const btn=target==='client'?$('lookupClientNip'):$('lookupInvoiceNip');
+ const oldText=btn?.textContent;
+ if(btn){btn.disabled=true;btn.textContent='Pobieranie…';}
  try{
-   const res=await fetch('https://wl-api.mf.gov.pl/api/search/nip/'+encodeURIComponent(clean)+'?date='+date,{cache:'no-store'});
-   const data=await res.json().catch(()=>null);
-   if(!res.ok){throw new Error(data?.message||'Nie udało się pobrać danych z Wykazu podatników VAT.');}
-   const s=data?.result?.subject;
-   if(!s){alert('Nie znaleziono danych dla tego NIP w Wykazie podatników VAT.');return null;}
-   const name=s.name||'';
-   const address=s.workingAddress||s.residenceAddress||'';
+   const data=await fetchCompanyFromPublicRegistry(clean);
+   if(!data){
+     alert('Nie znaleziono firmy o tym NIP w rejestrze REGON ani w Wykazie VAT MF.');
+     return null;
+   }
+   const name=data.name||'';
+   const address=data.address||'';
    if(target==='client'){
-     $('newClientNip').value=s.nip||clean;
+     $('newClientNip').value=data.nip||clean;
      if(name)$('newClientName').value=name;
      if(address)$('newClientAddress').value=address;
    }else{
-     $('clientNip').value=s.nip||clean;
+     $('clientNip').value=data.nip||clean;
      if(name)$('clientName').value=name;
      if(address)$('clientAddress').value=address;
    }
-   return s;
+   return data;
  }catch(err){
-   alert('Nie udało się pobrać danych NIP. '+(err?.message||'Sprawdź połączenie z internetem.'));
+   alert('Nie udało się pobrać danych NIP. '+(err?.message||'Sprawdź internet.'));
    return null;
+ }finally{
+   if(btn){btn.disabled=false;btn.textContent=oldText||'Pobierz dane';}
  }
 }
 
