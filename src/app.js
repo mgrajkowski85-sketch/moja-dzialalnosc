@@ -135,121 +135,94 @@ function setNipButtonsBusy(busy){
  buttons.forEach(b=>{b.disabled=busy;if(b.disabled)b.dataset.oldText=b.textContent;b.textContent=busy?'Pobieranie…':'Pobierz dane';});
 }
 
-async function fetchJson(url){
+async function fetchText(url){
  const controller=new AbortController();
- const timer=setTimeout(()=>controller.abort(),12000);
+ const timer=setTimeout(()=>controller.abort(),15000);
  try{
-   const res=await fetch(url,{method:'GET',headers:{Accept:'application/json'},cache:'no-store',signal:controller.signal});
+   const res=await fetch(url,{method:'GET',cache:'no-store',signal:controller.signal});
    const text=await res.text();
-   let data=null;
-   try{data=JSON.parse(text);}catch(_){}
-   if(!res.ok)throw new Error((data?.message||'Błąd HTTP '+res.status));
-   return data;
- }catch(err){
-   if(err?.name==='AbortError')throw new Error('Przekroczono czas oczekiwania na rejestr.');
-   throw err;
- }finally{
-   clearTimeout(timer);
+   if(!res.ok)throw new Error('HTTP '+res.status);
+   return text;
+ }finally{clearTimeout(timer);}
+}
+
+async function fetchJsonAny(targetUrl){
+ const attempts=[
+   {
+     name:'CORS Proxy',
+     url:'https://corsproxy.io/?url='+encodeURIComponent(targetUrl)
+   },
+   {
+     name:'AllOrigins',
+     url:'https://api.allorigins.win/raw?url='+encodeURIComponent(targetUrl)
+   },
+   {
+     name:'CodeTabs',
+     url:'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(targetUrl)
+   },
+   {
+     name:'ThingProxy',
+     url:'https://thingproxy.freeboard.io/fetch/'+targetUrl
+   },
+   {
+     name:'Bezpośrednio',
+     url:targetUrl
+   }
+ ];
+ let lastError=null;
+ for(const a of attempts){
+   try{
+     const raw=await fetchText(a.url);
+     const data=JSON.parse(raw);
+     return {data,source:a.name};
+   }catch(err){
+     lastError=err;
+     console.warn('NIP lookup '+a.name,err);
+   }
  }
+ throw new Error('Nie udało się połączyć z rejestrem NIP. '+(lastError?.message||'Sprawdź internet.'));
 }
 
 async function fetchCompanyFromPublicRegistry(nip){
  const clean=cleanNip(nip);
 
- // 1. Oficjalny Wykaz podatników VAT Ministerstwa Finansów.
+ const mfUrl='https://wl-api.mf.gov.pl/api/search/nip/'+encodeURIComponent(clean)+'?date='+today();
  try{
-   const mfUrl='https://wl-api.mf.gov.pl/api/search/nip/'+encodeURIComponent(clean)+'?date='+today();
-   const mfData=await fetchJson(mfUrl);
-   const subject=mfData?.result?.subject;
+   const result=await fetchJsonAny(mfUrl);
+   const subject=result.data?.result?.subject;
    if(subject){
      return {
        nip:subject.nip||clean,
        name:subject.name||'',
        address:subject.workingAddress||subject.residenceAddress||'',
        regon:subject.regon||'',
-       source:'Wykaz VAT MF'
+       source:result.source
      };
    }
  }catch(err){
-   console.warn('MF NIP lookup:',err);
+   console.warn('MF lookup failed',err);
  }
 
- // 2. Rejestr REGON/GUS przez publiczny endpoint JSON.
  try{
-   const regonUrl='https://skanfirmy.pl/regon/'+encodeURIComponent(clean)+'?format=json';
-   const regonData=await fetchJson(regonUrl);
-   const d=regonData?.dane;
+   const regonUrl='https://skanfirmy.pl/nip/'+encodeURIComponent(clean)+'?format=json';
+   const result=await fetchJsonAny(regonUrl);
+   const data=result.data;
+   const d=data?.dane;
    if(d){
-     const addressParts=[
-       d.ulica||'',
-       d.nrNieruchomosci||'',
-       d.nrLokalu?'/'+d.nrLokalu:'',
-       d.kodPocztowy||'',
-       d.miejscowosc||''
-     ].filter(Boolean);
+     const addressParts=[d.ulica||'',d.nrNieruchomosci||'',d.nrLokalu?'/'+d.nrLokalu:'',d.kodPocztowy||'',d.miejscowosc||''].filter(Boolean);
      return {
-       nip:regonData?.nip||clean,
+       nip:data?.nip||clean,
        name:d.nazwa||'',
        address:addressParts.join(' ').trim(),
-       regon:d.regon||regonData?.regon||'',
-       source:'REGON/GUS'
+       regon:d.regon||data?.regon||'',
+       source:result.source
      };
    }
  }catch(err){
-   console.warn('REGON NIP lookup:',err);
- }
-
- // 3. Publiczny endpoint KRS po NIP — dla spółek.
- try{
-   const krsUrl='https://skanfirmy.pl/nip/'+encodeURIComponent(clean)+'?format=json';
-   const krsData=await fetchJson(krsUrl);
-   const k=krsData?.krs;
-   if(k){
-     return {
-       nip:k.nip||clean,
-       name:k.nazwa||'',
-       address:k.adres||'',
-       regon:k.regon||'',
-       source:'KRS'
-     };
-   }
- }catch(err){
-   console.warn('KRS NIP lookup:',err);
+   console.warn('REGON lookup failed',err);
  }
 
  return null;
-}
-
-async function lookupNip(nip,target){
- const clean=cleanNip(nip);
- if(!validNip(clean)){alert('Podaj prawidłowy 10-cyfrowy NIP.');return null;}
- const btn=target==='client'?$('lookupClientNip'):$('lookupInvoiceNip');
- const oldText=btn?.textContent;
- if(btn){btn.disabled=true;btn.textContent='Pobieranie…';}
- try{
-   const data=await fetchCompanyFromPublicRegistry(clean);
-   if(!data){
-     alert('Nie znaleziono firmy o tym NIP w rejestrze REGON ani w Wykazie VAT MF.');
-     return null;
-   }
-   const name=data.name||'';
-   const address=data.address||'';
-   if(target==='client'){
-     $('newClientNip').value=data.nip||clean;
-     if(name)$('newClientName').value=name;
-     if(address)$('newClientAddress').value=address;
-   }else{
-     $('clientNip').value=data.nip||clean;
-     if(name)$('clientName').value=name;
-     if(address)$('clientAddress').value=address;
-   }
-   return data;
- }catch(err){
-   alert('Nie udało się pobrać danych NIP. '+(err?.message||'Sprawdź internet.'));
-   return null;
- }finally{
-   if(btn){btn.disabled=false;btn.textContent=oldText||'Pobierz dane';}
- }
 }
 
 function fillClientSelect(){
