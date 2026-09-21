@@ -337,6 +337,82 @@ function printDocument(id){
  window.addEventListener('afterprint',cleanup);window.print();setTimeout(()=>{if(document.body.classList.contains('printingDocument'))cleanup();},5000);
 }
 
+
+function pitYearRevenue(year){
+ const prefix=String(year)+'-';
+ return state.documents.filter(d=>String(d.sale_date||'').startsWith(prefix)).reduce((s,d)=>s+Number(d.total||0),0);
+}
+
+function pitNumber(id){
+ return Math.max(0,Number($(id)?.value||0));
+}
+
+function calculatePit(){
+ const year=Number($('pitYear')?.value||new Date().getFullYear());
+ const revenue=pitNumber('pitRevenue');
+ const costs=pitNumber('pitCosts');
+ const otherIncome=pitNumber('pitOtherIncome');
+ const deductions=pitNumber('pitDeductions');
+ const advances=pitNumber('pitAdvances');
+ const businessIncome=Math.max(0,revenue-costs);
+ const totalScaleIncome=Math.max(0,businessIncome+otherIncome-deductions);
+ let taxBeforeCredits=0;
+ const joint=$('pitJoint')?.checked;
+ const calcBase=joint?totalScaleIncome/2:totalScaleIncome;
+ const calcTax=calcBase<=120000?Math.max(0,calcBase*0.12-3600):10800+(calcBase-120000)*0.32;
+ taxBeforeCredits=joint?calcTax*2:calcTax;
+ const taxDue=Math.max(0,Math.round(taxBeforeCredits-advances));
+ $('pitSummary').innerHTML=
+   '<div><span>Przychód działalności nierejestrowanej</span><b>'+money(revenue)+'</b></div>'+
+   '<div><span>Koszty</span><b>'+money(costs)+'</b></div>'+
+   '<div><span>Dochód działalności nierejestrowanej</span><b>'+money(businessIncome)+'</b></div>'+
+   '<div><span>Łączny dochód do skali po odliczeniach</span><b>'+money(totalScaleIncome)+'</b></div>'+
+   '<div><span>Orientacyjny podatek wg skali</span><b>'+money(taxBeforeCredits)+'</b></div>'+
+   '<div><span>Po uwzględnieniu zaliczek</span><b>'+money(taxDue)+'</b></div>';
+ return {year,revenue,costs,businessIncome,otherIncome,deductions,advances,totalScaleIncome,taxBeforeCredits,taxDue,joint};
+}
+
+function printPitSummary(){
+ const p=calculatePit();
+ let area=$('printArea');if(!area){area=document.createElement('div');area.id='printArea';document.body.appendChild(area);}
+ area.innerHTML='<div class="printDoc"><h1>Zestawienie do PIT-36 za '+p.year+' rok</h1>'+
+ '<p><b>Źródło:</b> działalność nierejestrowana</p>'+
+ '<table><tbody>'+
+ '<tr><th>Przychód</th><td>'+money(p.revenue)+'</td></tr>'+
+ '<tr><th>Koszty uzyskania przychodu</th><td>'+money(p.costs)+'</td></tr>'+
+ '<tr><th>Dochód z działalności nierejestrowanej</th><td>'+money(p.businessIncome)+'</td></tr>'+
+ '<tr><th>Inne dochody opodatkowane skalą</th><td>'+money(p.otherIncome)+'</td></tr>'+
+ '<tr><th>Odliczenia od dochodu</th><td>'+money(p.deductions)+'</td></tr>'+
+ '<tr><th>Podstawa/dochód do skali po odliczeniach</th><td>'+money(p.totalScaleIncome)+'</td></tr>'+
+ '<tr><th>Orientacyjny podatek wg skali</th><td>'+money(p.taxBeforeCredits)+'</td></tr>'+
+ '<tr><th>Zaliczki</th><td>'+money(p.advances)+'</td></tr>'+
+ '<tr><th>Orientacyjnie do dopłaty</th><td>'+money(p.taxDue)+'</td></tr>'+
+ '</tbody></table>'+
+ '<p style="margin-top:28px">Rozliczenie wspólne z małżonkiem: '+(p.joint?'tak':'nie')+'</p>'+
+ '<p class="printFooter">To zestawienie pomocnicze do uzupełnienia PIT-36. Nie jest urzędowym formularzem.</p></div>';
+ document.body.classList.add('printingDocument');
+ const cleanup=()=>{document.body.classList.remove('printingDocument');area.innerHTML='';window.removeEventListener('afterprint',cleanup);};
+ window.addEventListener('afterprint',cleanup);window.print();setTimeout(()=>{if(document.body.classList.contains('printingDocument'))cleanup();},5000);
+}
+
+function initPit(){
+ if(!$('pitYear'))return;
+ const update=()=>{
+   const y=Number($('pitYear').value);
+   if(!initPit._manual || initPit._lastYear!==y){
+     $('pitRevenue').value=pitYearRevenue(y).toFixed(2);
+     initPit._lastYear=y;
+   }
+   calculatePit();
+ };
+ $('pitYear').onchange=()=>{initPit._manual=false;update();};
+ $('pitRevenue').oninput=()=>{initPit._manual=true;calculatePit();};
+ ['pitCosts','pitOtherIncome','pitDeductions','pitAdvances','pitJoint'].forEach(id=>$(id).addEventListener('input',calculatePit));
+ $('pitRefresh').onclick=()=>{initPit._manual=true;calculatePit();};
+ $('pitGenerate').onclick=printPitSummary;
+ update();
+}
+
 function renderQuarterLimits(year, quarterlyLimit){
  const months=['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
  const el=$('quarterLimits');
@@ -383,6 +459,7 @@ function render(){
  const yCard=$('limitsYearRemaining'); if(yCard) yCard.textContent=money(yearLeft);
  $('docCount').textContent=state.documents.length;$('clientCount').textContent=state.clients.length;
  renderQuarterLimits(year, quarterlyLimit);
+ initPit();
  $('number').value=nextNumber();fillClientSelect();
  const docs=[...state.documents].sort((a,b)=>(b.sale_date||'').localeCompare(a.sale_date||'')||(b.created_at||'').localeCompare(a.created_at||''));
  $('documentsList').innerHTML=docs.length?docs.map(d=>`<div class="row"><div><b>${escapeHtml(d.number)}</b><br>${escapeHtml(d.sale_date)}<br>${escapeHtml(d.client_name)}<br>${escapeHtml(d.item_name)}</div><div><b>${money(d.total)}</b><div class="row-actions"><button onclick="printDocument('${d.id}')">Drukuj / PDF</button><button class="danger" onclick="deleteDocument('${d.id}')">Usuń</button></div></div></div>`).join(''):'<div class="empty">Brak dokumentów.</div>';
