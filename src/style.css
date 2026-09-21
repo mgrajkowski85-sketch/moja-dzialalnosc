@@ -205,3 +205,13 @@ nav button:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.08
   .quarter-table th:first-child,.quarter-table td:first-child{width:62%}
   .quarter-table th:last-child,.quarter-table td:last-child{width:38%}
 }
+
+
+.pit-box{margin-top:18px;padding:18px;border:1px solid #d8e2ee;border-radius:12px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.04)}
+.pit-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}
+.pit-summary div{padding:12px;background:#f7faff;border:1px solid #dbe7f5;border-radius:9px}
+.pit-summary span{display:block;font-size:12px;color:#667085;margin-bottom:5px}.pit-summary b{font-size:17px}
+.pit-check{flex-direction:row;align-items:center;font-weight:600;margin:8px 0 16px}.pit-check input{width:auto}
+.pit-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.pit-link{text-decoration:none;color:#1858b7;display:inline-flex;align-items:center}
+@media(max-width:600px){.pit-summary{grid-template-columns:1fr}.pit-actions>*{width:100%;text-align:center;justify-content:center}.pit-box{padding:13px}}
+@media print{.printDoc table th{width:65%}.printDoc table th,.printDoc table td{border:1px solid #999;padding:10px}.printDoc table{width:100%;border-collapse:collapse}}
