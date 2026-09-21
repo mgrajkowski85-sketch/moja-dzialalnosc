@@ -97,6 +97,35 @@ async function deleteClient(id){
  await loadData();
 }
 
+function showClientDetails(id){
+ const c=state.clients.find(x=>x.id===id);
+ if(!c)return;
+ const docs=state.documents.filter(d=>d.client_id===id||d.client_name===c.name);
+ let modal=$('clientModal');
+ if(!modal){
+  modal=document.createElement('div');
+  modal.id='clientModal';
+  document.body.appendChild(modal);
+ }
+ modal.innerHTML=`<div class="client-modal-card">
+  <div class="client-modal-head">
+   <div><h3>${escapeHtml(c.name)}</h3><small>Dane klienta</small></div>
+   <button class="secondary" onclick="closeClientDetails()">Zamknij</button>
+  </div>
+  <div class="client-info">
+   <div><span>NIP</span><b>${escapeHtml(c.nip||'Brak')}</b></div>
+   <div><span>Adres</span><b>${escapeHtml(c.address||'Brak')}</b></div>
+   <div><span>Dokumenty</span><b>${docs.length}</b></div>
+  </div>
+ </div>`;
+ modal.classList.add('open');
+ modal.onclick=e=>{if(e.target===modal)closeClientDetails();};
+}
+function closeClientDetails(){
+ const modal=$('clientModal');
+ if(modal)modal.classList.remove('open');
+}
+
 async function deleteDocument(id){
  if(!confirm('Usunąć ten dokument z chmury?'))return;
  const {error}=await sb.from('documents').delete().eq('id',id);
@@ -130,7 +159,7 @@ function render(){
  $('number').value=nextNumber();fillClientSelect();
  const docs=[...state.documents].sort((a,b)=>(b.sale_date||'').localeCompare(a.sale_date||'')||(b.created_at||'').localeCompare(a.created_at||''));
  $('documentsList').innerHTML=docs.length?docs.map(d=>`<div class="row"><div><b>${escapeHtml(d.number)}</b><br>${escapeHtml(d.sale_date)}<br>${escapeHtml(d.client_name)}<br>${escapeHtml(d.item_name)}</div><div><b>${money(d.total)}</b><div class="row-actions"><button onclick="printDocument('${d.id}')">Drukuj / PDF</button><button class="danger" onclick="deleteDocument('${d.id}')">Usuń</button></div></div></div>`).join(''):'<div class="empty">Brak dokumentów.</div>';
- $('clientsList').innerHTML=state.clients.length?state.clients.map(c=>`<div class="row"><div><b>${escapeHtml(c.name)}</b><br>${escapeHtml(c.nip||'')}<br>${escapeHtml(c.address||'')}</div><button class="danger" onclick="deleteClient('${c.id}')">Usuń klienta</button></div>`).join(''):'<div class="empty">Brak klientów.</div>';
+ $('clientsList').innerHTML=state.clients.length?state.clients.map(c=>`<div class="row client-row" onclick="showClientDetails('${c.id}')"><div><b class="client-name">${escapeHtml(c.name)}</b><div class="client-hint">Kliknij, aby zobaczyć dane klienta</div></div><button class="danger" onclick="event.stopPropagation();deleteClient('${c.id}')">Usuń klienta</button></div>`).join(''):'<div class="empty">Brak klientów.</div>';
 }
 
 $('issueDate').value=today();$('saleDate').value=today();
