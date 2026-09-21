@@ -38,3 +38,18 @@ input,select{padding:11px;border:1px solid #ccd2d8;border-radius:7px;font-size:1
  .printTotal{text-align:right;font-size:20px;font-weight:bold;margin-top:20px}
  .printFooter{margin-top:60px;font-size:12px;color:#666}
 }
+
+.client-row{cursor:pointer;transition:background .15s}
+.client-row:hover{background:#f5f8ff}
+.client-name{font-size:17px}
+.client-hint{font-size:12px;color:#667085;margin-top:5px}
+#clientModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
+#clientModal.open{display:flex}
+.client-modal-card{background:#fff;width:min(520px,100%);border-radius:14px;padding:22px;box-shadow:0 15px 50px #0003}
+.client-modal-head{display:flex;justify-content:space-between;gap:15px;align-items:flex-start;border-bottom:1px solid #e5e7eb;padding-bottom:15px}
+.client-modal-head h3{margin:0 0 4px;font-size:22px}
+.client-modal-head small{color:#667085}
+.client-info{display:grid;gap:12px;margin-top:18px}
+.client-info div{padding:14px;background:#f7f8fa;border-radius:9px}
+.client-info span{display:block;color:#667085;font-size:12px;margin-bottom:5px}
+.client-info b{font-size:16px;word-break:break-word}
