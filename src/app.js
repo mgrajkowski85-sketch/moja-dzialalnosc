@@ -374,8 +374,16 @@ function calculatePit(){
 
 function printPitSummary(){
  const p=calculatePit();
+ savePitPerson();
+ const person={first:$('pitFirstName')?.value||'',last:$('pitLastName')?.value||'',pesel:$('pitPesel')?.value||'',nip:$('pitNip')?.value||'',birth:$('pitBirthDate')?.value||'',address:$('pitAddress')?.value||'',postal:$('pitPostal')?.value||'',city:$('pitCity')?.value||'',office:$('pitTaxOffice')?.value||''};
  let area=$('printArea');if(!area){area=document.createElement('div');area.id='printArea';document.body.appendChild(area);}
  area.innerHTML='<div class="printDoc"><h1>Zestawienie do PIT-36 za '+p.year+' rok</h1>'+
+ '<p><b>Podatnik:</b> '+escapeHtml((person.first+' '+person.last).trim())+
+ (person.pesel?'<br><b>PESEL:</b> '+escapeHtml(person.pesel):'')+
+ (person.nip?'<br><b>NIP:</b> '+escapeHtml(person.nip):'')+
+ (person.address?'<br><b>Adres:</b> '+escapeHtml(person.address)+' '+escapeHtml(person.postal)+' '+escapeHtml(person.city):'')+
+ (person.office?'<br><b>Urząd skarbowy:</b> '+escapeHtml(person.office):'')+
+ '</p>'+
  '<p><b>Źródło:</b> działalność nierejestrowana</p>'+
  '<table><tbody>'+
  '<tr><th>Przychód</th><td>'+money(p.revenue)+'</td></tr>'+
@@ -395,8 +403,22 @@ function printPitSummary(){
  window.addEventListener('afterprint',cleanup);window.print();setTimeout(()=>{if(document.body.classList.contains('printingDocument'))cleanup();},5000);
 }
 
+function loadPitPerson(){
+ try{
+   const data=JSON.parse(localStorage.getItem('pitPerson')||'{}');
+   ['pitFirstName','pitLastName','pitPesel','pitNip','pitBirthDate','pitAddress','pitPostal','pitCity','pitTaxOffice'].forEach(id=>{if($(id))$(id).value=data[id]||'';});
+ }catch(_){}
+}
+function savePitPerson(){
+ const data={};
+ ['pitFirstName','pitLastName','pitPesel','pitNip','pitBirthDate','pitAddress','pitPostal','pitCity','pitTaxOffice'].forEach(id=>{if($(id))data[id]=$(id).value||'';});
+ localStorage.setItem('pitPerson',JSON.stringify(data));
+}
+
 function initPit(){
  if(!$('pitYear'))return;
+ loadPitPerson();
+ ['pitFirstName','pitLastName','pitPesel','pitNip','pitBirthDate','pitAddress','pitPostal','pitCity','pitTaxOffice'].forEach(id=>$(id)?.addEventListener('input',savePitPerson));
  const update=()=>{
    const y=Number($('pitYear').value);
    if(!initPit._manual || initPit._lastYear!==y){
