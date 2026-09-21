@@ -215,3 +215,5 @@ nav button:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.08
 .pit-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.pit-link{text-decoration:none;color:#1858b7;display:inline-flex;align-items:center}
 @media(max-width:600px){.pit-summary{grid-template-columns:1fr}.pit-actions>*{width:100%;text-align:center;justify-content:center}.pit-box{padding:13px}}
 @media print{.printDoc table th{width:65%}.printDoc table th,.printDoc table td{border:1px solid #999;padding:10px}.printDoc table{width:100%;border-collapse:collapse}}
+
+.pit-box{margin-bottom:16px}.pit-box h3{margin-top:0}
