@@ -275,8 +275,8 @@ function render(){
  const annualTheoreticalLimit=quarterlyLimit*4;
  const yearLeft=Math.max(0,annualTheoreticalLimit-yi);
  $('monthIncome').textContent=money(mi);$('yearIncome').textContent=money(yi);
- $('quarterRemaining').textContent=money(quarterLeft);
- $('yearRemaining').textContent=money(yearLeft);
+ const qCard=$('limitsQuarterRemaining'); if(qCard) qCard.textContent=money(quarterLeft);
+ const yCard=$('limitsYearRemaining'); if(yCard) yCard.textContent=money(yearLeft);
  $('docCount').textContent=state.documents.length;$('clientCount').textContent=state.clients.length;
  renderMonthlyBreakdown(now);
  renderQuarterLimits(year, quarterlyLimit);
