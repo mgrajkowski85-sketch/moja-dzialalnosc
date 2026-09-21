@@ -28,6 +28,32 @@ async function signup(){
  if(error)setAuthMsg(error.message); else setAuthMsg('Konto utworzone. Jeśli pojawi się prośba o potwierdzenie e-maila, potwierdź wiadomość.');
 }
 $('loginBtn').onclick=login;$('signupBtn').onclick=signup;
+
+function showQr(){
+ let modal=$('qrModal');
+ if(!modal){
+  modal=document.createElement('div');
+  modal.id='qrModal';
+  document.body.appendChild(modal);
+ }
+ modal.innerHTML=`<div class="qr-card">
+  <button class="qr-close secondary" onclick="closeQr()">Zamknij</button>
+  <h2>📱 Otwórz aplikację na telefonie</h2>
+  <p>Zeskanuj ten kod aparatem telefonu.</p>
+  <div id="qrCode"></div>
+  <div class="qr-url">${escapeHtml(location.href.split('#')[0])}</div>
+ </div>`;
+ modal.classList.add('open');
+ const target=location.origin+location.pathname;
+ new QRCode($('qrCode'),{text:target,width:260,height:260,colorDark:"#111111",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+ modal.onclick=e=>{if(e.target===modal)closeQr();};
+}
+function closeQr(){
+ const modal=$('qrModal');
+ if(modal)modal.classList.remove('open');
+}
+$('loginQrBtn').onclick=showQr;
+$('qrBtn').onclick=showQr;
 $('logoutBtn').onclick=async()=>{await sb.auth.signOut();state.user=null;showAuth();};
 
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
