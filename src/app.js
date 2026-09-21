@@ -3,6 +3,7 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_H5qWRUFDD_SAkeNfDFe-Ig_c3M_-6z0
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const state={documents:[],clients:[],user:null};
+const calendarState={year:new Date().getFullYear(),month:new Date().getMonth(),selected:null};
 
 const $=id=>document.getElementById(id);
 const money=v=>Number(v||0).toLocaleString('pl-PL',{style:'currency',currency:'PLN'});
@@ -435,6 +436,68 @@ function initPit(){
  update();
 }
 
+
+function calendarDateKey(year,month,day){
+ return year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+}
+
+function renderDashboardCalendar(){
+ const grid=$('dashboardCalendarGrid');
+ const title=$('calTitle');
+ if(!grid||!title)return;
+ const {year,month}=calendarState;
+ const months=['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+ title.textContent=months[month]+' '+year;
+ const firstDay=(new Date(year,month,1).getDay()+6)%7;
+ const daysInMonth=new Date(year,month+1,0).getDate();
+ const todayKey=calendarDateKey(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+ const cells=[];
+ for(let i=0;i<firstDay;i++)cells.push('<div class="cal-cell cal-empty"></div>');
+ for(let day=1;day<=daysInMonth;day++){
+   const key=calendarDateKey(year,month,day);
+   const docs=state.documents.filter(d=>String(d.sale_date||'')===key);
+   const cls=['cal-cell','cal-day'];
+   if(key===todayKey)cls.push('cal-today');
+   if(key===calendarState.selected)cls.push('cal-selected');
+   if(docs.length)cls.push('cal-has-docs');
+   cells.push('<button type="button" class="'+cls.join(' ')+'" onclick="selectCalendarDay(\''+key+'\')">'+
+     '<span>'+day+'</span>'+(docs.length?'<small>'+docs.length+' dok.</small>':'')+
+   '</button>');
+ }
+ grid.innerHTML=cells.join('');
+ renderCalendarDayDetails(calendarState.selected);
+}
+
+function renderCalendarDayDetails(key){
+ const el=$('calendarDayDetails');
+ if(!el)return;
+ if(!key){el.innerHTML='<span>Wybierz dzień, aby zobaczyć dokumenty.</span>';return;}
+ const docs=state.documents.filter(d=>String(d.sale_date||'')===key);
+ if(!docs.length){el.innerHTML='<span>Brak dokumentów tego dnia.</span>';return;}
+ el.innerHTML='<b>'+escapeHtml(key)+'</b>'+docs.map(d=>
+   '<div class="cal-detail-row"><div><strong>'+escapeHtml(d.number)+'</strong><span>'+escapeHtml(d.client_name)+'</span><span>'+escapeHtml(d.item_name)+'</span></div><b>'+money(d.total)+'</b></div>'
+ ).join('');
+}
+
+function selectCalendarDay(key){
+ calendarState.selected=key;
+ renderDashboardCalendar();
+}
+
+$('calPrev')?.addEventListener('click',()=>{
+ calendarState.month--;
+ if(calendarState.month<0){calendarState.month=11;calendarState.year--;}
+ calendarState.selected=null;
+ renderDashboardCalendar();
+});
+$('calNext')?.addEventListener('click',()=>{
+ calendarState.month++;
+ if(calendarState.month>11){calendarState.month=0;calendarState.year++;}
+ calendarState.selected=null;
+ renderDashboardCalendar();
+});
+
+
 function renderQuarterLimits(year, quarterlyLimit){
  const months=['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
  const el=$('quarterLimits');
@@ -477,6 +540,7 @@ function render(){
  const annualTheoreticalLimit=quarterlyLimit*4;
  const yearLeft=Math.max(0,annualTheoreticalLimit-yi);
  $('monthIncome').textContent=money(mi);$('yearIncome').textContent=money(yi);
+ renderDashboardCalendar();
  const qCard=$('limitsQuarterRemaining'); if(qCard) qCard.textContent=money(quarterLeft);
  const yCard=$('limitsYearRemaining'); if(yCard) yCard.textContent=money(yearLeft);
  $('docCount').textContent=state.documents.length;$('clientCount').textContent=state.clients.length;
