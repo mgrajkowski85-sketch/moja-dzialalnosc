@@ -145,3 +145,41 @@ input,select{padding:11px;border:1px solid #ccd2d8;border-radius:7px;font-size:1
 @media(min-width:601px){
   #invoiceForm input,#invoiceForm select{min-width:0}
 }
+
+
+/* Odświeżony wygląd — trochę więcej kolorów */
+body{background:linear-gradient(180deg,#eef5ff 0%,#f7f9fc 45%,#f4f6f8 100%)}
+#mainView{box-shadow:0 10px 35px rgba(31,111,235,.08)}
+header{background:linear-gradient(135deg,#1f6feb,#4f8ff7);color:#fff;border-bottom:0}
+header small,#userEmail{color:rgba(255,255,255,.85)}
+nav{background:#fff;border-bottom:1px solid #dbe4f0}
+nav button{transition:.15s ease;border:1px solid #d7e2f0}
+nav button:nth-child(1){background:#eef5ff;color:#1858b7}
+nav button:nth-child(2){background:#eefbf4;color:#177245}
+nav button:nth-child(3){background:#fff7e8;color:#9a6200}
+nav button:nth-child(4){background:#f5efff;color:#6b3bb5}
+nav button:nth-child(5){background:#fff0f0;color:#b42318}
+nav button:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.cards>div{background:#fff;border-color:#d8e2ee;box-shadow:0 4px 14px rgba(0,0,0,.04)}
+.cards>div:nth-child(1){border-top:4px solid #2f80ed}
+.cards>div:nth-child(2){border-top:4px solid #27ae60}
+.cards>div:nth-child(3){border-top:4px solid #f2994a}
+.cards>div:nth-child(4){border-top:4px solid #9b51e0}
+.primary{background:linear-gradient(135deg,#1f6feb,#4f8ff7);box-shadow:0 5px 14px rgba(31,111,235,.2)}
+.secondary{background:#f7faff}
+.danger{background:linear-gradient(135deg,#c62828,#e15252)}
+.monthly-box,.quarter-card{background:#fff;border-color:#d8e2ee;box-shadow:0 4px 14px rgba(0,0,0,.04)}
+.quarter-card.current-quarter{background:linear-gradient(135deg,#eef6ff,#f8fbff);border-color:#b9d2f5}
+.quarter-summary div:nth-child(1){border-left:4px solid #2f80ed}
+.quarter-summary div:nth-child(2){border-left:4px solid #f2994a}
+.quarter-summary div:nth-child(3){border-left:4px solid #27ae60}
+.current-tag{background:#eaf2ff;color:#1858b7;border-color:#b9d2f5}
+.limit-note{color:#5f6f82}
+.qr-card{border-top:5px solid #1f6feb;background:linear-gradient(180deg,#f5f9ff 0%,#fff 32%)}
+#qrCode{margin:10px 0 14px}
+#qrCode img,#qrCode canvas{width:180px!important;height:180px!important;max-width:180px}
+@media(max-width:600px){
+  #qrCode img,#qrCode canvas{width:180px!important;height:180px!important;max-width:180px}
+  .qr-card{padding:20px 14px}
+  nav button{box-shadow:0 2px 7px rgba(0,0,0,.04)}
+}
