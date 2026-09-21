@@ -57,6 +57,14 @@ async function loadData(){
  render();
 }
 
+const pantaxAddressMap={
+ "Wspólnota Mieszkaniowa Ul.Dobra 1 w Garwolinie":"ul. Dobra 1, Garwolin",
+ "Wspólnota Mieszkaniowa Domu Przy Ul.Dobra 3 w Garwolinie":"ul. Dobra 3, Garwolin",
+ "Wspólnota Mieszkaniowa Domu Przy Ul.Dobra 5 w Garwolinie":"ul. Dobra 5, Garwolin",
+ "Wspólnota Mieszkaniowa Al.Legionów 44M w Garwolinie":"Al. Legionów 44M, Garwolin",
+ "Wspólnota Mieszkaniowa Janusza Korczaka 46 w Garwolinie":"ul. Janusza Korczaka 46, Garwolin"
+};
+
 async function syncClientsFromDocuments(){
  if(!state.user||!state.documents.length)return;
  const byName=new Map();
@@ -74,9 +82,14 @@ async function syncClientsFromDocuments(){
      const changes={};
      if(!existing.nip && c.nip)changes.nip=c.nip;
      if(!existing.address && c.address)changes.address=c.address;
+     if(!existing.address){
+       const mapped=Object.entries(pantaxAddressMap).find(([name])=>name.toLowerCase()===c.name.toLowerCase());
+       if(mapped)changes.address=mapped[1];
+     }
      if(Object.keys(changes).length) await sb.from('clients').update(changes).eq('id',existing.id);
    }else{
-     await sb.from('clients').insert({user_id:state.user.id,name:c.name,nip:c.nip||null,address:c.address||null});
+     const mapped=Object.entries(pantaxAddressMap).find(([name])=>name.toLowerCase()===c.name.toLowerCase());
+     await sb.from('clients').insert({user_id:state.user.id,name:c.name,nip:c.nip||null,address:c.address||mapped?.[1]||null});
    }
  }
 }
