@@ -138,8 +138,7 @@ function setNipButtonsBusy(busy){
 async function fetchCompanyFromPublicRegistry(nip){
  const clean=cleanNip(nip);
 
- // Najpierw publiczna warstwa danych REGON/GUS — działa także dla podmiotów,
- // których nie ma w Wykazie VAT MF.
+ // Publiczna warstwa REGON/GUS. Parametr format=json jest wymagany.
  const regonUrl='https://skanfirmy.pl/regon/'+encodeURIComponent(clean)+'?format=json';
  const regonRes=await fetch(regonUrl,{method:'GET',headers:{Accept:'application/json'},cache:'no-store'});
  if(regonRes.ok){
@@ -154,20 +153,24 @@ async function fetchCompanyFromPublicRegistry(nip){
        d.miejscowosc||''
      ].filter(Boolean);
      return {
-       nip:clean,
+       nip:regonData?.nip||clean,
        name:d.nazwa||'',
-       address:addressParts.join(' ').replace(/\s+,/g,','),
-       regon:d.regon||'',
-       source:'GUS/REGON'
+       address:addressParts.join(' ').replace(/\\s+,/g,',').trim(),
+       regon:d.regon||regonData?.regon||'',
+       source:'REGON/GUS'
      };
    }
  }
- if(regonRes.status!==404) {
-   const body=await regonRes.text().catch(()=> '');
-   throw new Error('Błąd serwisu REGON ('+regonRes.status+'). '+body.slice(0,160));
+ if(regonRes.status!==404){
+   let msg='';
+   try{
+     const body=await regonRes.json();
+     msg=body?.message||body?.error||'';
+   }catch(_){}
+   throw new Error(msg||'Serwis REGON zwrócił błąd HTTP '+regonRes.status+'.');
  }
 
- // Fallback do oficjalnego Wykazu podatników VAT MF.
+ // Oficjalny Wykaz VAT MF jako drugi krok.
  const mfUrl='https://wl-api.mf.gov.pl/api/search/nip/'+encodeURIComponent(clean)+'?date='+today();
  const mfRes=await fetch(mfUrl,{method:'GET',headers:{Accept:'application/json'},cache:'no-store'});
  const mfData=await mfRes.json().catch(()=>null);
@@ -183,8 +186,8 @@ async function fetchCompanyFromPublicRegistry(nip){
      };
    }
  }
- if(mfRes.status===404 || !mfData?.result?.subject) return null;
- throw new Error(mfData?.message||'Błąd Wykazu podatników VAT ('+mfRes.status+').');
+ if(mfRes.status===404 || !mfData?.result?.subject)return null;
+ throw new Error(mfData?.message||'Wykaz VAT MF zwrócił błąd HTTP '+mfRes.status+'.');
 }
 
 async function lookupNip(nip,target){
