@@ -135,59 +135,50 @@ function setNipButtonsBusy(busy){
  buttons.forEach(b=>{b.disabled=busy;if(b.disabled)b.dataset.oldText=b.textContent;b.textContent=busy?'Pobieranie…':'Pobierz dane';});
 }
 
+async function fetchViaCorsProxy(targetUrl){
+ const proxyUrl='https://api.allorigins.win/get?url='+encodeURIComponent(targetUrl);
+ const res=await fetch(proxyUrl,{method:'GET',cache:'no-store'});
+ if(!res.ok)throw new Error('Serwis pośredniczący zwrócił HTTP '+res.status+'.');
+ const wrapper=await res.json().catch(()=>null);
+ if(!wrapper||typeof wrapper.contents!=='string')throw new Error('Nieprawidłowa odpowiedź serwisu pośredniczącego.');
+ try{return JSON.parse(wrapper.contents);}catch(_){throw new Error('Rejestr zwrócił odpowiedź, której nie można odczytać.');}
+}
+
 async function fetchCompanyFromPublicRegistry(nip){
  const clean=cleanNip(nip);
 
- // Publiczna warstwa REGON/GUS. Parametr format=json jest wymagany.
+ // Oficjalny Wykaz podatników VAT MF przez warstwę CORS.
+ const mfUrl='https://wl-api.mf.gov.pl/api/search/nip/'+encodeURIComponent(clean)+'?date='+today();
+ const mfData=await fetchViaCorsProxy(mfUrl);
+ const subject=mfData?.result?.subject;
+ if(subject){
+   return {
+     nip:subject.nip||clean,
+     name:subject.name||'',
+     address:subject.workingAddress||subject.residenceAddress||'',
+     regon:subject.regon||'',
+     source:'Wykaz VAT MF'
+   };
+ }
+
+ // Dodatkowo próbujemy publicznej warstwy REGON.
  const regonUrl='https://skanfirmy.pl/regon/'+encodeURIComponent(clean)+'?format=json';
- const regonRes=await fetch(regonUrl,{method:'GET',headers:{Accept:'application/json'},cache:'no-store'});
- if(regonRes.ok){
-   const regonData=await regonRes.json();
+ try{
+   const regonData=await fetchViaCorsProxy(regonUrl);
    const d=regonData?.dane;
    if(d){
-     const addressParts=[
-       d.ulica||'',
-       d.nrNieruchomosci||'',
-       d.nrLokalu?'/'+d.nrLokalu:'',
-       d.kodPocztowy||'',
-       d.miejscowosc||''
-     ].filter(Boolean);
+     const addressParts=[d.ulica||'',d.nrNieruchomosci||'',d.nrLokalu?'/'+d.nrLokalu:'',d.kodPocztowy||'',d.miejscowosc||''].filter(Boolean);
      return {
        nip:regonData?.nip||clean,
        name:d.nazwa||'',
-       address:addressParts.join(' ').replace(/\\s+,/g,',').trim(),
+       address:addressParts.join(' ').trim(),
        regon:d.regon||regonData?.regon||'',
        source:'REGON/GUS'
      };
    }
- }
- if(regonRes.status!==404){
-   let msg='';
-   try{
-     const body=await regonRes.json();
-     msg=body?.message||body?.error||'';
-   }catch(_){}
-   throw new Error(msg||'Serwis REGON zwrócił błąd HTTP '+regonRes.status+'.');
- }
+ }catch(_){}
 
- // Oficjalny Wykaz VAT MF jako drugi krok.
- const mfUrl='https://wl-api.mf.gov.pl/api/search/nip/'+encodeURIComponent(clean)+'?date='+today();
- const mfRes=await fetch(mfUrl,{method:'GET',headers:{Accept:'application/json'},cache:'no-store'});
- const mfData=await mfRes.json().catch(()=>null);
- if(mfRes.ok){
-   const subject=mfData?.result?.subject;
-   if(subject){
-     return {
-       nip:subject.nip||clean,
-       name:subject.name||'',
-       address:subject.workingAddress||subject.residenceAddress||'',
-       regon:subject.regon||'',
-       source:'Wykaz VAT MF'
-     };
-   }
- }
- if(mfRes.status===404 || !mfData?.result?.subject)return null;
- throw new Error(mfData?.message||'Wykaz VAT MF zwrócił błąd HTTP '+mfRes.status+'.');
+ return null;
 }
 
 async function lookupNip(nip,target){
