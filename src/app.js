@@ -216,6 +216,30 @@ function printDocument(id){
  window.addEventListener('afterprint',cleanup);window.print();setTimeout(()=>{if(document.body.classList.contains('printingDocument'))cleanup();},5000);
 }
 
+function renderMonthlyBreakdown(now, quarterlyLimit){
+ const months=['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+ const rows=[];
+ let yearRunning=0;
+ for(let m=0;m<12;m++){
+   const income=state.documents.filter(d=>{
+     const dt=String(d.sale_date||'');
+     return dt.startsWith(`${now.getFullYear()}-${String(m+1).padStart(2,'0')}-`);
+   }).reduce((s,d)=>s+Number(d.total||0),0);
+   yearRunning+=income;
+   const q=Math.floor(m/3);
+   const qIncome=state.documents.filter(d=>{
+     const dt=new Date(String(d.sale_date||'')+'T00:00:00');
+     return dt.getFullYear()===now.getFullYear() && Math.floor(dt.getMonth()/3)===q;
+   }).reduce((s,d)=>s+Number(d.total||0),0);
+   const monthIndex=now.getMonth();
+   const isCurrent=m===monthIndex;
+   const isPast=m<monthIndex;
+   rows.push(`<tr class="${isCurrent?'current-month':''}"><td><b>${months[m]}</b>${isCurrent?' <span class="current-tag">teraz</span>':''}</td><td>${money(income)}</td><td>${money(qIncome)}</td><td>${money(Math.max(0,quarterlyLimit-qIncome))}</td><td>${money(yearRunning)}</td></tr>`);
+ }
+ const el=$('monthlyBreakdown');
+ if(el)el.innerHTML=`<div class="table-scroll"><table class="monthly-table"><thead><tr><th>Miesiąc</th><th>Przychód</th><th>Kwartał narastająco</th><th>Pozostało w kwartale</th><th>Rok narastająco</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+}
+
 function render(){
  const now=new Date(),ym=now.toISOString().slice(0,7),yy=String(now.getFullYear());
  const mi=state.documents.filter(d=>String(d.sale_date||'').startsWith(ym)).reduce((s,d)=>s+Number(d.total||0),0);
@@ -236,6 +260,7 @@ function render(){
  $('quarterRemaining').textContent=money(quarterLeft);
  $('yearRemaining').textContent=money(yearLeft);
  $('docCount').textContent=state.documents.length;$('clientCount').textContent=state.clients.length;
+ renderMonthlyBreakdown(now, quarterlyLimit);
  $('number').value=nextNumber();fillClientSelect();
  const docs=[...state.documents].sort((a,b)=>(b.sale_date||'').localeCompare(a.sale_date||'')||(b.created_at||'').localeCompare(a.created_at||''));
  $('documentsList').innerHTML=docs.length?docs.map(d=>`<div class="row"><div><b>${escapeHtml(d.number)}</b><br>${escapeHtml(d.sale_date)}<br>${escapeHtml(d.client_name)}<br>${escapeHtml(d.item_name)}</div><div><b>${money(d.total)}</b><div class="row-actions"><button onclick="printDocument('${d.id}')">Drukuj / PDF</button><button class="danger" onclick="deleteDocument('${d.id}')">Usuń</button></div></div></div>`).join(''):'<div class="empty">Brak dokumentów.</div>';
