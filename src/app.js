@@ -216,23 +216,6 @@ function printDocument(id){
  window.addEventListener('afterprint',cleanup);window.print();setTimeout(()=>{if(document.body.classList.contains('printingDocument'))cleanup();},5000);
 }
 
-function renderMonthlyBreakdown(now){
- const months=['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
- const rows=[];
- let yearRunning=0;
- for(let m=0;m<12;m++){
-   const income=state.documents.filter(d=>{
-     const dt=String(d.sale_date||'');
-     return dt.startsWith(`${now.getFullYear()}-${String(m+1).padStart(2,'0')}-`);
-   }).reduce((s,d)=>s+Number(d.total||0),0);
-   yearRunning+=income;
-   const isCurrent=m===now.getMonth();
-   rows.push(`<tr class="${isCurrent?'current-month':''}"><td><b>${months[m]}</b>${isCurrent?' <span class="current-tag">teraz</span>':''}</td><td>${money(income)}</td><td>${money(yearRunning)}</td></tr>`);
- }
- const el=$('monthlyBreakdown');
- if(el)el.innerHTML=`<div class="table-scroll"><table class="monthly-table"><thead><tr><th>Miesiąc</th><th>Przychód</th><th>Rok narastająco</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
-}
-
 function renderQuarterLimits(year, quarterlyLimit){
  const months=['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
  const el=$('quarterLimits');
@@ -278,7 +261,6 @@ function render(){
  const qCard=$('limitsQuarterRemaining'); if(qCard) qCard.textContent=money(quarterLeft);
  const yCard=$('limitsYearRemaining'); if(yCard) yCard.textContent=money(yearLeft);
  $('docCount').textContent=state.documents.length;$('clientCount').textContent=state.clients.length;
- renderMonthlyBreakdown(now);
  renderQuarterLimits(year, quarterlyLimit);
  $('number').value=nextNumber();fillClientSelect();
  const docs=[...state.documents].sort((a,b)=>(b.sale_date||'').localeCompare(a.sale_date||'')||(b.created_at||'').localeCompare(a.created_at||''));
