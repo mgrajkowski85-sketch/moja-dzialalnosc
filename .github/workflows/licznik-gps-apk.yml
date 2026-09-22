@@ -51,6 +51,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: LicznikGPS-APK
-          path: licznik-gps-android/app/build/outputs/apk/debug/LicznikGPS.apk
+          path: app/build/outputs/apk/debug/LicznikGPS.apk
           if-no-files-found: error
           retention-days: 7
