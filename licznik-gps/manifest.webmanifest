@@ -1,0 +1,13 @@
+{
+  "name":"Licznik GPS",
+  "short_name":"Licznik GPS",
+  "lang":"pl-PL",
+  "start_url":"./",
+  "scope":"./",
+  "display":"standalone",
+  "orientation":"portrait-primary",
+  "background_color":"#0b1220",
+  "theme_color":"#0b1220",
+  "description":"Licznik kilometrów GPS, spalania LPG i kosztu przejazdu.",
+  "icons":[{"src":"../icons/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
