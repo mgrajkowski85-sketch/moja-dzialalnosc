@@ -1,24 +1,21 @@
 package pl.licznikgps
 import android.Manifest
-import android.app.Activity
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Bundle
-import android.widget.*
-import java.util.Locale
-
-class MainActivity: Activity() {
- private val sp by lazy { getSharedPreferences("gps",0) }
- private lateinit var km:TextView; private lateinit var fuel:TextView; private lateinit var cost:TextView
- override fun onCreate(b:Bundle?){super.onCreate(b)
-  val r=LinearLayout(this);r.orientation=LinearLayout.VERTICAL;r.setPadding(28,40,28,24);r.setBackgroundColor(0xff0b1220.toInt())
-  fun t(s:String,z:Float)=TextView(this).apply{text=s;textSize=z;setTextColor(-1);setPadding(0,10,0,10)}
-  r.addView(t("🚗 LICZNIK GPS",28f));km=t("0.00 km",58f);r.addView(km);r.addView(t("Spalanie: 11 l/100 km   |   LPG: 3,20 zł/l",16f))
-  fuel=t("Spalone LPG: 0.00 l",20f);cost=t("Koszt: 0.00 zł",20f);r.addView(fuel);r.addView(cost)
-  r.addView(Button(this).apply{text="▶ START";setOnClickListener{startGps()}})
-  r.addView(Button(this).apply{text="■ STOP";setOnClickListener{stopService(Intent(this@MainActivity,GpsService::class.java))}})
-  setContentView(r);update()
- }
- private fun startGps(){if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED){requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.POST_NOTIFICATIONS),7);return};startForegroundService(Intent(this,GpsService::class.java))}
- private fun update(){val k=sp.getFloat("km",0f).toDouble();km.text=String.format(Locale.US,"%.2f km",k);fuel.text=String.format(Locale.US,"Spalone LPG: %.2f l",k*.11);cost.text=String.format(Locale.US,"Koszt: %.2f zł",k*.11*3.2)}
+import android.app.*;import android.content.*;import android.content.pm.PackageManager;import android.graphics.Color;import android.os.Bundle;import android.view.Gravity;import android.widget.*;import java.util.*
+class MainActivity:Activity(){
+ private val sp by lazy{getSharedPreferences("gps",0)};private lateinit var km:TextView;private lateinit var speed:TextView;private lateinit var cost:TextView;private lateinit var fuel:TextView;private lateinit var status:TextView
+ private fun tv(s:String,z:Float,b:Boolean=false)=TextView(this).apply{text=s;textSize=z;setTextColor(Color.WHITE);if(b)typeface=android.graphics.Typeface.DEFAULT_BOLD;setPadding(12,8,12,8)}
+ override fun onCreate(b:Bundle?){super.onCreate(b);window.statusBarColor=Color.rgb(8,12,20);window.navigationBarColor=Color.rgb(8,12,20);ui();registerReceiver(object:BroadcastReceiver(){override fun onReceive(c:Context?,i:Intent?){refresh()}},IntentFilter("pl.licznikgps.UPDATE"),Context.RECEIVER_NOT_EXPORTED);refresh()}
+ private fun ui(){val r=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(18,18,18,12);setBackgroundColor(Color.rgb(8,12,20))}
+ r.addView(tv("LICZNIK GPS",24,true));status=tv("● GOTOWY",15,true);status.setTextColor(Color.rgb(80,220,130));r.addView(status)
+ val card=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(10,16,10,16);setBackgroundColor(Color.rgb(20,28,42))}
+ km=tv("0.00 km",52,true);km.gravity=Gravity.CENTER;card.addView(km);speed=tv("0 km/h",25,true);speed.gravity=Gravity.CENTER;card.addView(speed);r.addView(card,LinearLayout.LayoutParams(-1,0,1f))
+ fuel=tv("⛽ LPG: 0.00 l",18f);r.addView(fuel);cost=tv("💰 Koszt: 0.00 zł",22f,true);r.addView(cost)
+ val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL};fun btn(s:String,a:()->Unit)=Button(this).apply{text=s;setOnClickListener{a()};isAllCaps=false}
+ row.addView(btn("▶ START"){startGps()},LinearLayout.LayoutParams(0,58,1f));row.addView(btn("■ STOP"){stopGps()},LinearLayout.LayoutParams(0,58,1f));r.addView(row)
+ val row2=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL};row2.addView(btn("↻ RESET"){sp.edit().clear().apply();refresh()},LinearLayout.LayoutParams(0,54,1f));row2.addView(btn("⚙ USTAWIENIA"){settings()},LinearLayout.LayoutParams(0,54,1f));r.addView(row2);r.addView(btn("📋 HISTORIA"){history()});setContentView(r)}
+ private fun startGps(){if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED){requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.POST_NOTIFICATIONS),7);return};startForegroundService(Intent(this,GpsService::class.java));refresh()}
+ private fun stopGps(){stopService(Intent(this,GpsService::class.java));refresh()}
+ private fun refresh(){val k=sp.getFloat("km",0f).toDouble();val l=sp.getFloat("consumption",11f).toDouble();val p=sp.getFloat("price",3.2f).toDouble();km.text=String.format(Locale.US,"%.2f km",k);fuel.text=String.format(Locale.US,"⛽ LPG: %.2f l",k*l/100);cost.text=String.format(Locale.US,"💰 Koszt: %.2f zł",k*l*p/100);speed.text=String.format(Locale.US,"%.0f km/h",sp.getFloat("speed",0f));status.text=if(sp.getBoolean("running",false))"● GPS AKTYWNY" else "● GOTOWY"}
+ private fun settings(){val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;padding=24};val c=EditText(this).apply{hint="Spalanie l/100 km";setText(sp.getFloat("consumption",11f).toString());inputType=2};val p=EditText(this).apply{hint="Cena LPG zł/l";setText(sp.getFloat("price",3.2f).toString());inputType=2};box.addView(c);box.addView(p);AlertDialog.Builder(this).setTitle("Ustawienia auta").setView(box).setPositiveButton("ZAPISZ"){_,_->sp.edit().putFloat("consumption",c.text.toString().replace(',','.').toFloatOrNull()?:11f).putFloat("price",p.text.toString().replace(',','.').toFloatOrNull()?:3.2f).apply();refresh()}.setNegativeButton("ANULUJ",null).show()}
+ private fun history(){val h=sp.getStringSet("history",emptySet())!!.toList().sortedDescending();AlertDialog.Builder(this).setTitle("Historia przejazdów").setMessage(if(h.isEmpty())"Brak zapisanych przejazdów." else h.joinToString("\n\n")).setPositiveButton("OK",null).show()}
 }
